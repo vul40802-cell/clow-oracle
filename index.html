@@ -2593,24 +2593,21 @@ async function downloadCard(){
       return;
     }
     // Android / Desktop 下載
-    const isAndroid=/Android/.test(navigator.userAgent);
+   const isAndroid=/Android/.test(navigator.userAgent);
     if(isAndroid){
-      // Android：先嘗試 Web Share API（最可靠）
+      // Android：直接用 Blob + <a download>（比 window.open 更可靠）
       try{
         const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
-        const file=new File([blob],filename,{type:'image/png'});
-        if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-          await navigator.share({files:[file],title:'庫洛牌占卜 — 今日運勢'});
-          return;
-        }
-      }catch(shareErr){ /* share 失敗繼續嘗試下載 */ }
-      // Fallback：開新視窗讓用戶長按儲存
-      const dataUrl=canvas.toDataURL('image/png');
-      const w=window.open('','_blank');
-      if(w){
-        w.document.write('<html><head><meta name="viewport" content="width=device-width"><title>儲存圖片</title></head><body style="margin:0;background:#1a0a2e;display:flex;flex-direction:column;align-items:center;padding:20px;"><p style="color:#c9a84c;font-family:sans-serif;font-size:14px;margin-bottom:12px;">長按圖片 → 儲存至裝置 ✨</p><img src="'+dataUrl+'" style="max-width:100%;border-radius:16px;"></body></html>');
-        w.document.close();
-      } else {
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.download=filename;
+        a.href=url;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url),3000);
+        return;
+      }catch(e){
         alert('下載失敗，請截圖儲存 🙏');
       }
     } else {
